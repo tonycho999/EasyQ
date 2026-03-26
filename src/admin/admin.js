@@ -34,7 +34,7 @@ function applyLanguage() {
     });
 }
 
-// --- 2. 기본 세팅 ---
+// --- 2. 기본 세팅 및 전역 변수 ---
 const urlParams = new URLSearchParams(window.location.search);
 const gasAppId = urlParams.get('id');
 
@@ -50,12 +50,18 @@ const el = {
     alertSound: document.getElementById('alert-sound')
 };
 
+// 🚨 사장님이 버튼을 눌렀을 때 울리는 중복 알림 방지용 플래그
+let isUpdatingByAdmin = false; 
+
 // 시작 시 언어 변환
 applyLanguage();
 
 // --- 3. Pusher 실시간 알림 ---
 EasyQPusher.init(gasAppId, (data) => {
-    el.alertSound.play().catch(e => console.log("Auto-play prevented. Please interact with the screen first."));
+    // 🚨 사장님이 직접 상태를 변경한 직후(2초 이내)가 아닐 때만 띵동 소리 재생! (새 손님이 왔을 때만)
+    if (!isUpdatingByAdmin) {
+        el.alertSound.play().catch(e => console.log("Auto-play prevented. Please interact with the screen first."));
+    }
     fetchList();
 });
 
@@ -95,7 +101,6 @@ function renderWalkinList(list) {
     
     let html = '';
     list.forEach((item, index) => {
-        // 백엔드에서 받아온 전화번호(phone)가 없으면 '번호 없음' 출력
         const phoneText = item.phone ? item.phone : lang.noPhone;
 
         html += `
@@ -133,7 +138,8 @@ function renderRiderList(list) {
                 <div class="ticket-name">🛵 ${lang.riderOrderNo} ${item.orderNumber}</div>
                 <div class="card-actions">
                     <button class="btn btn-call" style="background-color: #2e7d32;" onclick="updateStatus('${item.id}', '픽업 요망')">${lang.btnFoodReady}</button>
-                    <button class="btn btn-cancel" onclick="updateStatus('${item.id}', '픽업 완료')">${lang.btnPickedUp}</button>
+                    <button class="btn btn-admit" onclick="updateStatus('${item.id}', '픽업 완료')">${lang.btnPickedUp}</button>
+                    <button class="btn btn-cancel" onclick="updateStatus('${item.id}', '취소')">${lang.btnCancel}</button>
                 </div>
             </div>
         `;
@@ -144,11 +150,18 @@ function renderRiderList(list) {
 // --- 7. 상태 업데이트 ---
 async function updateStatus(ticketId, newStatus) {
     el.loading.classList.remove('hidden');
+    isUpdatingByAdmin = true; // 🚨 업데이트 시작 (소리 차단)
+    
     try {
         await EasyQApi.request(gasAppId, { action: 'updateStatus', ticketId: ticketId, status: newStatus });
         fetchList();
     } catch (error) {
         alert(lang.alertError);
+    } finally {
+        // 🚨 1.5초 뒤에 다시 소리 알림 활성화 (Pusher 핑이 돌아올 시간을 벌어줌)
+        setTimeout(() => {
+            isUpdatingByAdmin = false;
+        }, 1500);
     }
 }
 
