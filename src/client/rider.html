@@ -5,66 +5,65 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>EasyQ - Rider Pick-up</title>
     <link rel="stylesheet" href="style.css">
-    <meta name="theme-color" content="#0047ab">
+    <meta name="theme-color" content="#333333">
 </head>
 <body>
 
     <div class="container">
         <header>
-            <h1 id="shop-name">EasyQ Restaurant</h1>
-            <p class="subtitle" style="color: #d32f2f; font-weight: bold;">🛵 Delivery Rider Only</p>
+            <h1 id="shop-name" data-i18n="title">EasyQ Restaurant</h1>
+            <p class="subtitle" style="color: #d32f2f; font-weight: bold;" data-i18n="subtitle">🛵 Delivery Rider Only</p>
         </header>
 
         <div id="register-section" class="section">
             
             <div class="input-group">
-                <label for="platform">Platform (배달앱)</label>
+                <label for="platform" data-i18n="platformLabel">Platform (배달앱)</label>
                 <select id="platform" style="width: 100%; padding: 15px; font-size: 16px; border: 1px solid #ddd; border-radius: 8px; background-color: #fafafa;">
                     <option value="Grab">🟢 Grab Food</option>
                     <option value="Foodpanda">🐼 Foodpanda</option>
                     <option value="Lalamove">🟠 Lalamove</option>
-                    <option value="Other">기타 (Other)</option>
+                    <option value="Other" data-i18n="optionOther">기타 / Other</option>
                 </select>
             </div>
 
             <div class="input-group">
-                <label for="order-number">Order Number (주문번호 마지막 4자리)</label>
-                <input type="text" id="order-number" placeholder="e.g., GF-1234 or 1234" autocomplete="off" style="text-transform: uppercase;">
+                <label for="order-number" data-i18n="orderNumLabel">Order Number (주문번호 마지막 4자리)</label>
+                <input type="text" id="order-number" data-i18n-placeholder="orderNumPlaceholder" placeholder="e.g., GF-1234 or 1234" autocomplete="off" style="text-transform: uppercase;">
             </div>
 
-            <button id="btn-register" class="btn-primary" style="background-color: #333;">Register Pick-up</button>
+            <button id="btn-register" class="btn-primary" style="background-color: #333;" data-i18n="btnRegister">Register Pick-up</button>
             
-            <p class="notice">* Please wait outside. We will notify you when the food is ready.</p>
+            <p class="notice" data-i18n="notice">* Please wait outside. We will notify you when the food is ready.</p>
         </div>
 
         <div id="status-section" class="section hidden">
             <div class="status-card">
-                <p class="status-label">Current Status</p>
+                <p class="status-label" data-i18n="statusLabel">Current Status</p>
                 <div class="turn-number">
-                    <span id="cooking-status" style="font-size: 30px; color: #ff9800;">🍳 Preparing...</span>
+                    <span id="cooking-status" style="font-size: 30px; color: #ff9800;" data-i18n="cookingStatus">🍳 Preparing...</span>
                 </div>
-                <p id="status-message" class="status-message" style="color: #666;">조리 중입니다. 매장 밖에서 대기해주세요.</p>
+                <p id="status-message" class="status-message" style="color: #666;" data-i18n="statusMessageWait">조리 중입니다. 매장 밖에서 대기해주세요.</p>
             </div>
 
             <div class="info-group">
-                <p>Platform: <strong id="my-platform">Grab</strong></p>
-                <p>Order No: <strong id="my-order-number">1234</strong></p>
+                <p><span data-i18n="infoPlatform">Platform:</span> <strong id="my-platform">Grab</strong></p>
+                <p><span data-i18n="infoOrderNo">Order No:</span> <strong id="my-order-number">1234</strong></p>
             </div>
 
-            <p class="final-notice" style="color: #d32f2f; font-weight: bold;">
+            <p class="final-notice" style="color: #d32f2f; font-weight: bold;" data-i18n="finalNotice">
                 Do not enter the store yet.<br>Wait for the "READY" signal!
             </p>
         </div>
         
         <div id="loading" class="loading-overlay hidden">
             <div class="spinner"></div>
-            <p>Processing...</p>
+            <p data-i18n="loading">Processing...</p>
         </div>
 
     </div>
 
     <script src="https://js.pusher.com/8.0/pusher.min.js"></script>
-    
     <script src="../shared/api.js"></script>
     <script src="../shared/pusher-setup.js"></script>
     <script src="rider.js"></script>
