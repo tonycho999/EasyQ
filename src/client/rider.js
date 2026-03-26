@@ -1,17 +1,81 @@
-// ... (초기 세팅과 API 주소 가져오는 부분은 app.js와 동일) ...
+// --- 1. 다국어(i18n) 번역 사전 세팅 ---
+const i18nDict = {
+    ko: {
+        title: "EasyQ 매장", subtitle: "🛵 배달 기사 전용",
+        platformLabel: "배달 플랫폼 선택", optionOther: "기타 (Other)",
+        orderNumLabel: "주문번호 (마지막 4자리)", orderNumPlaceholder: "예: 1234",
+        btnRegister: "픽업 대기 등록",
+        notice: "* 매장 밖에서 대기해주세요. 음식이 준비되면 알려드립니다.",
+        statusLabel: "현재 조리 상태", cookingStatus: "🍳 조리 중...",
+        statusMessageWait: "조리 중입니다. 매장 밖에서 대기해주세요.",
+        infoPlatform: "플랫폼:", infoOrderNo: "주문번호:",
+        finalNotice: "아직 매장에 들어오지 마세요.<br>'READY(완료)' 신호를 기다려주세요!",
+        loading: "처리 중...", alertOrderNum: "주문번호를 입력해주세요."
+    },
+    en: {
+        title: "EasyQ Store", subtitle: "🛵 Delivery Rider Only",
+        platformLabel: "Platform", optionOther: "Other",
+        orderNumLabel: "Order Number (Last 4 digits)", orderNumPlaceholder: "e.g., GF-1234 or 1234",
+        btnRegister: "Register Pick-up",
+        notice: "* Please wait outside. We will notify you when the food is ready.",
+        statusLabel: "Current Status", cookingStatus: "🍳 Preparing...",
+        statusMessageWait: "Preparing your order. Please wait outside.",
+        infoPlatform: "Platform:", infoOrderNo: "Order No:",
+        finalNotice: "Do not enter the store yet.<br>Wait for the 'READY' signal!",
+        loading: "Processing...", alertOrderNum: "Please enter the order number."
+    }
+};
 
+const userLang = (navigator.language || navigator.userLanguage).startsWith('ko') ? 'ko' : 'en';
+const lang = i18nDict[userLang];
+
+function applyLanguage() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        // innerHTML을 사용해야 <br> 같은 태그가 정상적으로 번역 적용됨
+        if (lang[key]) el.innerHTML = lang[key];
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (lang[key]) el.placeholder = lang[key];
+    });
+}
+
+// --- 2. 기본 세팅 ---
+const urlParams = new URLSearchParams(window.location.search);
+const gasAppId = urlParams.get('id');
+
+const STORAGE_KEY = `easyq_rider_${gasAppId}`;
+let myTicketInfo = null;
+let statusPollingTimer = null;
+
+async function init() {
+    applyLanguage(); // 시작 시 언어 변환 실행
+    if (!gasAppId) { alert("Invalid QR Code."); return; }
+
+    const savedTicket = localStorage.getItem(STORAGE_KEY);
+    if (savedTicket) {
+        myTicketInfo = JSON.parse(savedTicket);
+        switchToStatusScreen();
+        startStatusPolling();
+    }
+}
+
+// --- 3. 기사 픽업 등록 ---
 async function registerWaiting() {
     const platform = document.getElementById('platform').value;
     const orderNumber = document.getElementById('order-number').value.trim();
 
-    if (!orderNumber) { alert("Please enter the order number."); return; }
+    if (!orderNumber) { alert(lang.alertOrderNum); return; }
 
     showLoading(true);
 
     try {
-        // GAS API에 기사 등록 요청 (action=registerRider 로 일반 손님과 구분)
-        const response = await fetch(`${gasAppId}?action=registerRider&platform=${platform}&orderNumber=${orderNumber}`);
-        const data = await response.json();
+        const data = await EasyQApi.request(gasAppId, {
+            action: 'registerRider',
+            platform: platform,
+            orderNumber: orderNumber
+        });
 
         if (data.status === 'success') {
             myTicketInfo = {
@@ -25,42 +89,70 @@ async function registerWaiting() {
             startStatusPolling();
         }
     } catch (error) {
-        alert("Network error. Please try again.");
+        alert("Network Error.");
     } finally {
         showLoading(false);
     }
 }
 
-// 상태 체크 함수
+// --- 4. 실시간 상태 확인 (Pusher 연동) ---
+function startStatusPolling() {
+    checkMyTurn();
+    if (typeof EasyQPusher !== 'undefined') {
+        EasyQPusher.init(gasAppId, () => checkMyTurn());
+    } else {
+        statusPollingTimer = setInterval(checkMyTurn, 15000);
+    }
+}
+
 function checkMyTurn() {
     if (!myTicketInfo) return;
 
-    fetch(`${gasAppId}?action=getRiderStatus&ticketId=${myTicketInfo.ticketId}`)
-        .then(response => response.json())
+    EasyQApi.request(gasAppId, { action: 'getRiderStatus', ticketId: myTicketInfo.ticketId })
         .then(data => {
             if (data.status === 'success') {
-                // 사장님이 '호출(Ready)' 버튼을 눌렀을 때
                 if (data.ticketStatus === '픽업 요망') {
                     handleFoodReady();
+                } else if (data.ticketStatus === '픽업 완료' || data.ticketStatus === '취소') {
+                    // 완료/취소 시 화면 리셋
+                    clearInterval(statusPollingTimer);
+                    localStorage.removeItem(STORAGE_KEY);
+                    alert(userLang === 'ko' ? "처리가 완료되었습니다." : "Order completed.");
+                    location.reload(); 
                 }
             }
         });
 }
 
+function switchToStatusScreen() {
+    document.getElementById('register-section').classList.add('hidden');
+    document.getElementById('status-section').classList.remove('hidden');
+    document.getElementById('my-platform').innerText = myTicketInfo.platform;
+    document.getElementById('my-order-number').innerText = myTicketInfo.orderNumber;
+}
+
 function handleFoodReady() {
-    clearInterval(statusPollingTimer);
-    localStorage.removeItem(STORAGE_KEY);
+    if (statusPollingTimer) clearInterval(statusPollingTimer);
     
-    // 화면을 강렬하게 바꾸고 소리를 울리게 유도 (기사님 입장 신호)
     const statusText = document.getElementById('cooking-status');
     statusText.innerText = "✅ READY!";
     statusText.style.color = "#2e7d32";
     statusText.style.fontSize = "40px";
     
-    document.getElementById('status-message').innerText = "음식이 준비되었습니다. 카운터로 와주세요!\nYour order is ready. Please come to the counter.";
+    // 다국어 처리된 상태 메시지
+    document.getElementById('status-message').innerHTML = userLang === 'ko' 
+        ? "음식이 준비되었습니다.<br>카운터로 오셔서 픽업해주세요!" 
+        : "Your order is ready.<br>Please come to the counter!";
     document.getElementById('status-message').style.color = "#2e7d32";
     document.getElementById('status-message').style.fontSize = "18px";
     
-    // 배경색을 초록색 계열로 살짝 바꿔 시각적 효과 극대화
     document.querySelector('.status-card').style.backgroundColor = "#e8f5e9";
 }
+
+function showLoading(isShow) {
+    if (isShow) document.getElementById('loading').classList.remove('hidden');
+    else document.getElementById('loading').classList.add('hidden');
+}
+
+document.getElementById('btn-register').addEventListener('click', registerWaiting);
+init();
