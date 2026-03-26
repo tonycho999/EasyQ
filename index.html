@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EasyQ 접속 중...</title>
+    <style>
+        body { margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f4f6f9; font-family: sans-serif; }
+        .spinner { border: 4px solid #ddd; border-top: 4px solid #0047ab; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="spinner"></div>
+
+    <script>
+        // 1. URL 파라미터 분석
+        const urlParams = new URLSearchParams(window.location.search);
+        const type = urlParams.get('type'); // client, admin, rider
+        const gasAppId = urlParams.get('id'); // 매장 고유 ID
+
+        // ID가 없으면 에러 (잘못된 QR 스캔)
+        if (!gasAppId) {
+            document.body.innerHTML = "<h2 style='color:#d32f2f; text-align:center;'>오류: 잘못된 접근입니다.<br>올바른 QR코드를 스캔해주세요.</h2>";
+        } else {
+            // 2. 타입에 따라 알맞은 폴더로 자동 이동 (Redirect)
+            let targetUrl = '';
+            
+            if (type === 'admin') {
+                targetUrl = `/src/admin/index.html?id=${gasAppId}`;
+            } else if (type === 'rider') {
+                targetUrl = `/src/client/rider.html?id=${gasAppId}`;
+            } else {
+                // type 파라미터가 없거나 client인 경우 (기본값 = 홀 손님)
+                targetUrl = `/src/client/index.html?id=${gasAppId}`;
+            }
+
+            // 흔적 없이 주소 이동 (뒤로 가기 방지)
+            window.location.replace(targetUrl);
+        }
+    </script>
+</body>
+</html>
