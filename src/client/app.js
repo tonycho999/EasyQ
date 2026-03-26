@@ -57,7 +57,7 @@ const el = {
     registerSection: document.getElementById('register-section'),
     statusSection: document.getElementById('status-section'),
     userName: document.getElementById('user-name'),
-    userPhone: document.getElementById('user-phone'), // 신규 추가
+    userPhone: document.getElementById('user-phone'),
     userCount: document.getElementById('user-count'),
     btnRegister: document.getElementById('btn-register'),
     myTurn: document.getElementById('my-turn'),
@@ -69,6 +69,7 @@ const el = {
 const STORAGE_KEY = `easyq_ticket_${gasAppId}`;
 let myTicketInfo = null;
 let statusPollingTimer = null;
+let hasCalledSoundPlayed = false; // 🚨 누락되었던 소리 중복 재생 방지용 변수 추가!
 
 async function init() {
     applyLanguage(); // 시작하자마자 언어 변환 실행!
@@ -96,11 +97,10 @@ async function registerWaiting() {
     showLoading(true);
 
     try {
-        // 백엔드(GAS)로 name, phone, count 모두 전송
         const data = await EasyQApi.request(gasAppId, {
             action: 'register',
             name: name,
-            phone: phone, // 연락처 추가!
+            phone: phone,
             count: count
         });
 
@@ -146,10 +146,9 @@ function checkMyTurn() {
                         const sound = document.getElementById('alert-sound');
                         if (sound) sound.play().catch(e => console.log("소리 재생 실패", e));
         
-                        // 폰 진동도 같이 울리게 추가! (안드로이드 지원)
                         if (navigator.vibrate) navigator.vibrate([200, 100, 200]); 
         
-                        hasCalledSoundPlayed = true; // 소리 냈다고 표시
+                        hasCalledSoundPlayed = true; 
                     }
                     document.querySelector('.status-label').innerText = userLang === 'ko' ? "🔔 차례가 되었습니다!" : "🔔 It's your turn!";
                     document.querySelector('.status-label').style.color = "#d32f2f";
@@ -160,6 +159,17 @@ function checkMyTurn() {
                 // 사장님이 입장 완료 처리했을 때
                 else if (data.ticketStatus === '입장 완료') {
                     handleAdmission();
+                }
+                // 🚨 누락되었던 '취소' 처리 로직 추가!
+                else if (data.ticketStatus === '취소') {
+                    if (statusPollingTimer) clearInterval(statusPollingTimer);
+                    localStorage.removeItem(STORAGE_KEY);
+                    
+                    document.querySelector('.status-label').innerText = userLang === 'ko' ? "안내" : "Notice";
+                    document.querySelector('.status-label').style.color = "#777";
+                    document.querySelector('.turn-number').innerHTML = `<span style="font-size:30px;color:#777;">${userLang === 'ko' ? '대기 취소됨' : 'Waitlist Canceled'}</span>`;
+                    document.getElementById('status-message').innerText = userLang === 'ko' ? "대기가 취소되었습니다. 매장에 문의해주세요." : "Your waitlist has been canceled. Please contact the store.";
+                    document.getElementById('status-message').style.color = "#777";
                 }
             }
         });
