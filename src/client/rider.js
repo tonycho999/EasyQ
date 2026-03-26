@@ -41,13 +41,14 @@ function applyLanguage() {
     });
 }
 
-// --- 2. 기본 세팅 ---
+// --- 2. 기본 세팅 및 전역 변수 ---
 const urlParams = new URLSearchParams(window.location.search);
 const gasAppId = urlParams.get('id');
 
 const STORAGE_KEY = `easyq_rider_${gasAppId}`;
 let myTicketInfo = null;
 let statusPollingTimer = null;
+let hasReadySoundPlayed = false; // 🚨 소리 중복 재생 방지용 변수 추가됨!
 
 async function init() {
     applyLanguage(); // 시작 시 언어 변환 실행
@@ -111,19 +112,32 @@ function checkMyTurn() {
     EasyQApi.request(gasAppId, { action: 'getRiderStatus', ticketId: myTicketInfo.ticketId })
         .then(data => {
             if (data.status === 'success') {
+                
                 if (data.ticketStatus === '픽업 요망') {
+                    // 🚨 조리 완료 시 딱 한 번만 소리 및 진동 울리기
+                    if (!hasReadySoundPlayed) {
+                        const sound = document.getElementById('alert-sound');
+                        if (sound) sound.play().catch(e => console.log("소리 재생 실패", e));
+                        
+                        if (navigator.vibrate) navigator.vibrate([200, 100, 200]); // 진동 추가
+                        
+                        hasReadySoundPlayed = true;
+                    }
                     handleFoodReady();
+                    
                 } else if (data.ticketStatus === '픽업 완료' || data.ticketStatus === '취소') {
-                    // 완료/취소 시 화면 리셋
-                    clearInterval(statusPollingTimer);
+                    // 🚨 사장님이 전달 완료/취소를 누르면 화면 리셋
+                    if (statusPollingTimer) clearInterval(statusPollingTimer);
                     localStorage.removeItem(STORAGE_KEY);
                     alert(userLang === 'ko' ? "처리가 완료되었습니다." : "Order completed.");
                     location.reload(); 
                 }
+                
             }
         });
 }
 
+// --- 5. UI 업데이트 관련 함수들 ---
 function switchToStatusScreen() {
     document.getElementById('register-section').classList.add('hidden');
     document.getElementById('status-section').classList.remove('hidden');
