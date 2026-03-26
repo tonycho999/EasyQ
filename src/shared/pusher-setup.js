@@ -1,9 +1,9 @@
 // --- Pusher 실시간 통신 초기화 모듈 ---
 
 const EasyQPusher = {
-    // 💡 향후 Pusher 가입 후 발급받는 실제 Key로 변경하세요!
-    APP_KEY: 'YOUR_PUSHER_APP_KEY',
-    CLUSTER: 'YOUR_PUSHER_CLUSTER',
+    // 발급받으신 Key와 Cluster를 여기에 넣습니다.
+    APP_KEY: '6c28257d35e1e67dead1',
+    CLUSTER: 'ap1',
 
     /**
      * 특정 매장의 채널을 구독하고 실시간 신호를 대기합니다.
