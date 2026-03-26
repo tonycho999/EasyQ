@@ -142,6 +142,15 @@ function checkMyTurn() {
                 
                 // 사장님이 호출했을 때
                 if (data.ticketStatus === '호출') {
+                    if (!hasCalledSoundPlayed) {
+                        const sound = document.getElementById('alert-sound');
+                        if (sound) sound.play().catch(e => console.log("소리 재생 실패", e));
+        
+                        // 폰 진동도 같이 울리게 추가! (안드로이드 지원)
+                        if (navigator.vibrate) navigator.vibrate([200, 100, 200]); 
+        
+                        hasCalledSoundPlayed = true; // 소리 냈다고 표시
+                    }
                     document.querySelector('.status-label').innerText = userLang === 'ko' ? "🔔 차례가 되었습니다!" : "🔔 It's your turn!";
                     document.querySelector('.status-label').style.color = "#d32f2f";
                     document.querySelector('.turn-number').innerHTML = `<span style="font-size:30px;color:#d32f2f;">${userLang === 'ko' ? '지금 바로 입장하세요' : 'Please proceed to the store'}</span>`;
