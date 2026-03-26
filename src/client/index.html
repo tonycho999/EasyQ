@@ -8,6 +8,7 @@
 </head>
 <body>
     <audio id="alert-sound" src="../../public/dingdong.mp3" preload="auto"></audio>
+
     <div class="container">
         <header>
             <h1 id="shop-name" data-i18n="title">EasyQ 매장</h1>
@@ -15,6 +16,13 @@
         </header>
 
         <div id="register-section" class="section">
+            
+            <div class="current-wait-box" style="text-align: center; background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #1565c0;">
+                <span data-i18n="currentWaitText">현재 대기:</span> 
+                <strong id="shop-wait-count" style="font-size: 24px;">-</strong> 
+                <span data-i18n="currentWaitUnit">팀</span>
+            </div>
+
             <div class="input-group">
                 <label for="user-name" data-i18n="nameLabel">방문자명</label>
                 <input type="text" id="user-name" data-i18n-placeholder="namePlaceholder" placeholder="이름을 입력해주세요" autocomplete="off">
