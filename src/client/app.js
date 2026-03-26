@@ -2,7 +2,7 @@
 const i18nDict = {
     ko: {
         title: "EasyQ 매장", subtitle: "모바일 스마트 대기열",
-        currentWaitText: "현재 대기:", currentWaitUnit: "팀", // 🚨 신규 추가
+        currentWaitText: "현재 대기:", currentWaitUnit: "팀",
         nameLabel: "방문자명", namePlaceholder: "이름을 입력해주세요",
         phoneLabel: "연락처", phonePlaceholder: "전화번호 (예: 010-1234-5678)",
         countLabel: "방문 인원", countPlaceholder: "명",
@@ -17,7 +17,7 @@ const i18nDict = {
     },
     en: {
         title: "EasyQ Store", subtitle: "Smart Mobile Waitlist",
-        currentWaitText: "Currently Waiting:", currentWaitUnit: "groups", // 🚨 신규 추가
+        currentWaitText: "Currently Waiting:", currentWaitUnit: "groups",
         nameLabel: "Visitor Name", namePlaceholder: "Enter your name",
         phoneLabel: "Contact Number", phonePlaceholder: "Phone number (e.g., 0917-123-4567)",
         countLabel: "Number of Guests", countPlaceholder: "Pax",
@@ -52,10 +52,11 @@ const urlParams = new URLSearchParams(window.location.search);
 const gasAppId = urlParams.get('id');
 
 const el = {
+    shopLogo: document.getElementById('shop-logo'), // 🚨 추가됨
     shopName: document.getElementById('shop-name'),
     registerSection: document.getElementById('register-section'),
     statusSection: document.getElementById('status-section'),
-    shopWaitCount: document.getElementById('shop-wait-count'), // 🚨 신규 추가
+    shopWaitCount: document.getElementById('shop-wait-count'), 
     userName: document.getElementById('user-name'),
     userPhone: document.getElementById('user-phone'),
     userCount: document.getElementById('user-count'),
@@ -81,17 +82,28 @@ async function init() {
         switchToStatusScreen();
         startStatusPolling();
     } else {
-        // 🚨 신규: 티켓이 없으면(처음 접속하면) 현재 대기 인원 불러오기
         fetchShopInfo();
     }
 }
 
-// 🚨 신규: 현재 대기 인원 가져오는 함수
+// 🚨 업데이트: 로고 이미지 및 식당 이름 렌더링
 function fetchShopInfo() {
     EasyQApi.request(gasAppId, { action: 'getShopInfo' })
         .then(data => {
             if (data.status === 'success') {
                 el.shopWaitCount.innerText = data.waitCount;
+                
+                // 매장 이름 변경
+                if (data.shopName && data.shopName !== 'EasyQ 매장') {
+                    el.shopName.innerText = data.shopName;
+                    el.shopName.removeAttribute('data-i18n'); 
+                }
+
+                // 로고 이미지가 설정되어 있다면 화면에 표시
+                if (data.logoUrl) {
+                    el.shopLogo.src = data.logoUrl;
+                    el.shopLogo.style.display = 'block'; 
+                }
             }
         });
 }
