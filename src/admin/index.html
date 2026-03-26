@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EasyQ 관리자 대시보드</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://js.pusher.com/8.0/pusher.min.js"></script>
+</head>
+<body>
+    <audio id="alert-sound" src="/dingdong.mp3" preload="auto"></audio>
+
+    <div class="admin-container">
+        <header>
+            <div class="header-top">
+                <h1>EasyQ 매장 관리</h1>
+                <button id="btn-refresh" class="btn-refresh">🔄 새로고침</button>
+            </div>
+            
+            <div class="tabs">
+                <button id="tab-walkin" class="tab active">🙋‍♂️ 홀 손님 대기열</button>
+                <button id="tab-rider" class="tab">🛵 배달 기사 픽업</button>
+            </div>
+        </header>
+
+        <main id="list-walkin" class="list-section">
+            <div class="empty-msg">현재 대기 중인 손님이 없습니다.</div>
+        </main>
+
+        <main id="list-rider" class="list-section hidden">
+            <div class="empty-msg">현재 대기 중인 기사님이 없습니다.</div>
+        </main>
+
+        <div id="loading" class="loading-overlay hidden">
+            <div class="spinner"></div>
+            <p>데이터를 불러오는 중...</p>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
