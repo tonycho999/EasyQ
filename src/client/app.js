@@ -2,6 +2,7 @@
 const i18nDict = {
     ko: {
         title: "EasyQ 매장", subtitle: "모바일 스마트 대기열",
+        currentWaitText: "현재 대기:", currentWaitUnit: "팀", // 🚨 신규 추가
         nameLabel: "방문자명", namePlaceholder: "이름을 입력해주세요",
         phoneLabel: "연락처", phonePlaceholder: "전화번호 (예: 010-1234-5678)",
         countLabel: "방문 인원", countPlaceholder: "명",
@@ -16,6 +17,7 @@ const i18nDict = {
     },
     en: {
         title: "EasyQ Store", subtitle: "Smart Mobile Waitlist",
+        currentWaitText: "Currently Waiting:", currentWaitUnit: "groups", // 🚨 신규 추가
         nameLabel: "Visitor Name", namePlaceholder: "Enter your name",
         phoneLabel: "Contact Number", phonePlaceholder: "Phone number (e.g., 0917-123-4567)",
         countLabel: "Number of Guests", countPlaceholder: "Pax",
@@ -30,11 +32,9 @@ const i18nDict = {
     }
 };
 
-// 현재 사용자의 브라우저 언어 감지 ('ko' 또는 'en')
 const userLang = (navigator.language || navigator.userLanguage).startsWith('ko') ? 'ko' : 'en';
 const lang = i18nDict[userLang];
 
-// 화면의 텍스트를 언어에 맞게 싹 바꿔주는 함수
 function applyLanguage() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
@@ -44,7 +44,6 @@ function applyLanguage() {
         const key = el.getAttribute('data-i18n-placeholder');
         if (lang[key]) el.placeholder = lang[key];
     });
-    // 폰트 크기 미세조정 (영어일 때 글자가 길어지는 것 대비)
     if (userLang === 'en') document.body.style.fontSize = "15px";
 }
 
@@ -56,6 +55,7 @@ const el = {
     shopName: document.getElementById('shop-name'),
     registerSection: document.getElementById('register-section'),
     statusSection: document.getElementById('status-section'),
+    shopWaitCount: document.getElementById('shop-wait-count'), // 🚨 신규 추가
     userName: document.getElementById('user-name'),
     userPhone: document.getElementById('user-phone'),
     userCount: document.getElementById('user-count'),
@@ -69,10 +69,10 @@ const el = {
 const STORAGE_KEY = `easyq_ticket_${gasAppId}`;
 let myTicketInfo = null;
 let statusPollingTimer = null;
-let hasCalledSoundPlayed = false; // 🚨 누락되었던 소리 중복 재생 방지용 변수 추가!
+let hasCalledSoundPlayed = false; 
 
 async function init() {
-    applyLanguage(); // 시작하자마자 언어 변환 실행!
+    applyLanguage(); 
     if (!gasAppId) { alert("Invalid QR Code."); return; }
 
     const savedTicket = localStorage.getItem(STORAGE_KEY);
@@ -80,16 +80,28 @@ async function init() {
         myTicketInfo = JSON.parse(savedTicket);
         switchToStatusScreen();
         startStatusPolling();
+    } else {
+        // 🚨 신규: 티켓이 없으면(처음 접속하면) 현재 대기 인원 불러오기
+        fetchShopInfo();
     }
 }
 
-// --- 3. 대기 등록 (연락처 데이터 포함하여 전송) ---
+// 🚨 신규: 현재 대기 인원 가져오는 함수
+function fetchShopInfo() {
+    EasyQApi.request(gasAppId, { action: 'getShopInfo' })
+        .then(data => {
+            if (data.status === 'success') {
+                el.shopWaitCount.innerText = data.waitCount;
+            }
+        });
+}
+
+// --- 3. 대기 등록 (연락처 포함) ---
 async function registerWaiting() {
     const name = el.userName.value.trim();
     const phone = el.userPhone.value.trim();
     const count = parseInt(el.userCount.value);
 
-    // 언어에 맞는 경고창 띄우기
     if (!name) { alert(lang.alertName); el.userName.focus(); return; }
     if (!phone) { alert(lang.alertPhone); el.userPhone.focus(); return; }
     if (!count || count < 1) { alert(lang.alertCount); el.userCount.focus(); return; }
@@ -140,14 +152,11 @@ function checkMyTurn() {
             if (data.status === 'success') {
                 el.myTurn.innerText = data.currentTurn;
                 
-                // 사장님이 호출했을 때
                 if (data.ticketStatus === '호출') {
                     if (!hasCalledSoundPlayed) {
                         const sound = document.getElementById('alert-sound');
                         if (sound) sound.play().catch(e => console.log("소리 재생 실패", e));
-        
                         if (navigator.vibrate) navigator.vibrate([200, 100, 200]); 
-        
                         hasCalledSoundPlayed = true; 
                     }
                     document.querySelector('.status-label').innerText = userLang === 'ko' ? "🔔 차례가 되었습니다!" : "🔔 It's your turn!";
@@ -156,11 +165,9 @@ function checkMyTurn() {
                     document.getElementById('status-message').innerText = userLang === 'ko' ? "카운터로 오셔서 점원에게 화면을 보여주세요." : "Please show this screen to the staff.";
                     document.getElementById('status-message').style.color = "#d32f2f";
                 } 
-                // 사장님이 입장 완료 처리했을 때
                 else if (data.ticketStatus === '입장 완료') {
                     handleAdmission();
                 }
-                // 🚨 누락되었던 '취소' 처리 로직 추가!
                 else if (data.ticketStatus === '취소') {
                     if (statusPollingTimer) clearInterval(statusPollingTimer);
                     localStorage.removeItem(STORAGE_KEY);
